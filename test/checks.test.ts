@@ -206,3 +206,19 @@ test("oversized response fails and stops reading", async () => {
   assert.ok(r.detail.includes("larger"));
   assert.ok(pulled < 20);
 });
+
+test("a UTF-8 byte-order mark does not break JSON parsing", async () => {
+  const body = new Uint8Array([
+    0xef,
+    0xbb,
+    0xbf,
+    ...new TextEncoder().encode(
+      JSON.stringify({ applinks: { details: [{ appIDs: ["T.a.b"] }] } }),
+    ),
+  ]);
+  const r = await checkAasa(
+    stub(() => new Response(body, { status: 200 })),
+    "a.com",
+  );
+  assert.equal(r.status, "ok");
+});
