@@ -129,6 +129,36 @@ const stmt = (extra: object) => ({
   target: { namespace: "android_app", package_name: "p.q", ...extra },
 });
 
+test("assetlinks: missing or malformed package names never pass", () => {
+  const stmtWithoutPackage = (extra: object) => ({
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: { namespace: "android_app", ...extra },
+  });
+  assert.equal(
+    evaluateAssetLinks([
+      stmtWithoutPackage({ sha256_cert_fingerprints: [FP] }),
+    ]).status,
+    "warn",
+  );
+  assert.equal(
+    evaluateAssetLinks([
+      { ...stmt({ sha256_cert_fingerprints: [FP] }), target: { namespace: "android_app", package_name: "", sha256_cert_fingerprints: [FP] } },
+    ]).status,
+    "warn",
+  );
+  assert.equal(
+    evaluateAssetLinks([
+      { ...stmt({ sha256_cert_fingerprints: [FP] }), target: { namespace: "android_app", package_name: 42, sha256_cert_fingerprints: [FP] } },
+    ]).status,
+    "warn",
+  );
+  const missing = evaluateAssetLinks([
+    stmtWithoutPackage({ sha256_cert_fingerprints: [FP] }),
+  ]);
+  assert.equal(missing.status, "warn");
+  assert.equal(missing.detail.includes("package_name"), true);
+});
+
 test("assetlinks: missing, empty or string fingerprints do not pass", () => {
   assert.equal(evaluateAssetLinks([stmt({})]).status, "warn");
   assert.equal(
